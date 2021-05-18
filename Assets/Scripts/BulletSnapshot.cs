@@ -6,7 +6,7 @@ public class BulletSnapshot {
     public bool wait = false;
     public Vector2 position;
     public Vector2 velocity;
-    public List<BulletFunc> lambdasToExecute = new List<BulletFunc>();
+    public List<RewindFunc> lambdasToExecute = new List<RewindFunc>();
 
     public static BulletSnapshot clone(BulletSnapshot toClone) {
         return new BulletSnapshot() {

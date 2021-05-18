@@ -9,16 +9,10 @@ public class Bullet : MonoBehaviour
     public CapsuleCollider2D capsuleCollider;
     public SpriteRenderer spriteRenderer;
     public List<BulletSnapshot> history;
-    public Vector2 originPosition;
-    public Vector2 direction;
-    public float speed = 8f;
+    public float speed = 16f;
     public bool dead = false;
-
-    delegate void disableComponents();
-
     BulletSnapshot currentFrameSnapshot = new BulletSnapshot();
-
-    BulletFunc undoDeath;
+    
 
     void Awake() {
         globals = GameObject.Find("Globals").GetComponent<Globals>();
@@ -29,13 +23,8 @@ public class Bullet : MonoBehaviour
         rigidBody = GetComponent<Rigidbody2D>();
         capsuleCollider = GetComponent<CapsuleCollider2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
-        // Vector2 transformedDirection = transform.TransformDirection( direction );
-        // rigidBody.AddForce(transformedDirection * speed, ForceMode2D.Impulse);
 
-        undoDeath = () => {
-            dead = false;
-            spriteRenderer.enabled = true;
-        };
+
     }
 
     // Update is called once per frame
@@ -47,61 +36,39 @@ public class Bullet : MonoBehaviour
                 return;
             }
             BulletSnapshot snapshot = history[0];
-            // if (snapshot.wait) {
-            //     return;
-            // }
-            rigidBody.simulated = false;
-            capsuleCollider.enabled = false;
-            if (!(snapshot.position == Vector2.zero)) {
-                transform.position = snapshot.position;
-            }
-            if (!(snapshot.velocity  == Vector2.zero)) {
-                rigidBody.velocity = snapshot.velocity;
-            }
+            transform.position = snapshot.position;
+            rigidBody.velocity = snapshot.velocity;
             for (int i = 0; i < snapshot.lambdasToExecute.Count; i++) {
-                BulletFunc func = snapshot.lambdasToExecute[i];
-                func();
-                Debug.Log("After executing undo death func");
+                RewindFunc func = snapshot.lambdasToExecute[i];
+                func(gameObject);
             }
             history.RemoveAt(0);
-            Debug.Log($"CurrentFrame position: {transform.position}");
-            // Debug.Log($"Removing history. Count: {history.Count}");
         } else {
-            if (!dead) {
-                capsuleCollider.enabled = true;
-                rigidBody.simulated = true;
-                currentFrameSnapshot.position = (Vector2) rigidBody.position;
-                currentFrameSnapshot.velocity = (Vector2) rigidBody.velocity;
-                Debug.Log($"CurrentFrame position: {currentFrameSnapshot.position}");
-            } else {
-                currentFrameSnapshot.wait = true;
-            }
-            
+            currentFrameSnapshot.position = (Vector2) rigidBody.position;
+            currentFrameSnapshot.velocity = (Vector2) rigidBody.velocity;
         }
     }
 
     void LateUpdate() {
         if (!globals.rewinding){
-            history.Insert(0, BulletSnapshot.clone(currentFrameSnapshot));
+            history.Insert(0, currentFrameSnapshot);
             currentFrameSnapshot = new BulletSnapshot();
-            // Debug.Log($"Inserting to history. Count: {history.Count}");
+            while (history.Count > globals.targetFramerate * globals.secondsOfRewind) {
+                history.RemoveAt(history.Count - 1);
+            }
         }
     }
 
     public void OnTriggerEnter2D(Collider2D other) {
-        // Debug.Log($"Hit {other.name}");
-        // Destroy(gameObject);
-        // Debug.Log("Adding undo Death func");
-        currentFrameSnapshot.lambdasToExecute.Add(undoDeath);
+        currentFrameSnapshot.lambdasToExecute.Add(Delegates.bulletUndoDeath);
         death();
     }
 
     private void death() {
-        Debug.Log("Dying");
         dead = true;
         rigidBody.velocity = Vector2.zero;
         rigidBody.simulated = false;
-        // spriteRenderer.enabled = false;
+        spriteRenderer.enabled = false;
         capsuleCollider.enabled = false;
     }
 }

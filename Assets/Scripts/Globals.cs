@@ -6,8 +6,11 @@ public class Globals : MonoBehaviour
 {
  
     public bool rewinding = false;
+    public int secondsOfRewind = 5;
+    public int targetFramerate = 60;
 
     void Awake() {
+        Application.targetFrameRate = targetFramerate;
         prefabManager = GameObject.Find("PrefabManager").GetComponent<PrefabManager>();
     }
 
