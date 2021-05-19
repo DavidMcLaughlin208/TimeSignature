@@ -9,7 +9,7 @@ public class Player : MonoBehaviour
     Vector2 moveDirection = Vector3.zero;
     Vector2 mousePos = Vector2.zero;
 
-    public Rigidbody2D rigidBody;
+    public Rigidbody2D rb;
     public PlayerSnapshot currentFrameSnapshot = new PlayerSnapshot();
 
     public List<PlayerSnapshot> history;
@@ -18,21 +18,39 @@ public class Player : MonoBehaviour
 
     public Transform bulletSpawn;
 
+    public bool slowmo = false;
+
     void Awake() {
         globals = GameObject.Find("Globals").GetComponent<Globals>();
     }
 
     void Start()
     {
-        rigidBody = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody2D>();
         history = new List<PlayerSnapshot>();
         bulletPrefab = globals.prefabManager.bulletPrefab;
         bulletSpawn = transform.Find("BulletSpawn");
     }
 
     void Update() {
+        if (Input.GetKeyDown(KeyCode.LeftShift)) {
+            if (!globals.rewinding) {
+                if (slowmo) {
+                    slowmo = false;
+                    Time.timeScale = 1f;
+                } else {
+                    slowmo = true;
+                    Time.timeScale = 0.5f;
+                }
+            }
+        }
+
         if (Input.GetKeyDown("r")) {
             globals.rewinding = true;
+            if (slowmo) {
+                slowmo = false;
+                Time.timeScale = 1f;
+            } 
         }
         if (Input.GetKeyUp("r")) {
             globals.rewinding = false;
@@ -44,7 +62,7 @@ public class Player : MonoBehaviour
             }
             PlayerSnapshot snapshot = history[0];
             transform.position = snapshot.position;
-            rigidBody.rotation = snapshot.angle;
+            rb.rotation = snapshot.angle;
             history.RemoveAt(0);
         } else {
             if (Input.GetMouseButtonDown(0)) {
@@ -58,7 +76,7 @@ public class Player : MonoBehaviour
             mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             Vector2 dir = (mousePos - (Vector2) transform.position);
             float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
-            rigidBody.rotation = angle;
+            rb.rotation = angle;
 
 
             currentFrameSnapshot.position = transform.position;
@@ -69,7 +87,7 @@ public class Player : MonoBehaviour
     }
 
     void FixedUpdate() {
-        rigidBody.MovePosition(rigidBody.position + moveDirection * speed * Time.fixedDeltaTime);
+        rb.MovePosition(rb.position + moveDirection * speed * Time.fixedDeltaTime);  
     }
 
     void LateUpdate() {
@@ -88,7 +106,8 @@ public class Player : MonoBehaviour
         Bullet bulletScript = bullet.GetComponent<Bullet>();
 
         Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
-        rb.AddForce(bulletSpawn.up * bulletScript.speed, ForceMode2D.Impulse);
+        rb.velocity = bulletSpawn.up * Bullet.speed;
+        // rb.AddForce(bulletSpawn.up * bulletScript.speed, ForceMode2D.Impulse);
 
         
         

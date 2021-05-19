@@ -43,6 +43,10 @@
      <Compile Include="Assets\Scripts\Bullet.cs" />
      <Compile Include="Assets\Scripts\Player.cs" />
      <Compile Include="Assets\Scripts\Delegates.cs" />
+     <Compile Include="Assets\Scripts\Ground.cs" />
+     <Compile Include="Assets\CameraPosition.cs" />
+     <Compile Include="Assets\HitEffect.cs" />
+     <None Include="Assets\AnimationImporter\readme.txt" />
     <Reference Include="UnityEngine">
         <HintPath>/Users/davidmclaughlin/UnityInstallations/2020.3.7f1/Unity.app/Contents/Managed/UnityEngine/UnityEngine.dll</HintPath>
     </Reference>
