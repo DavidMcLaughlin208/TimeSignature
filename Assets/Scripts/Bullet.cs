@@ -92,7 +92,7 @@ public class Bullet : MonoBehaviour
     // }
 
     void LateUpdate() {
-        if (!globals.getRewinding() && globals.getIsRecordingFrame()){
+        if (!globals.getRewinding()){
             history.Insert(0, currentFrameSnapshot);
             currentFrameSnapshot = new BulletSnapshot();
             while (history.Count > globals.targetFramerate * globals.secondsOfRewind) {

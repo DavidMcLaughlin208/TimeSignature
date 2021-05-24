@@ -17,6 +17,7 @@ public class Globals : MonoBehaviour
     public float localTimescale = 1f;
 
     private float timescaleAccumulator = 0f;
+    private float accumulatorThreshold = 1f;
 
     private bool isPopFrame = false;
 
@@ -41,9 +42,9 @@ public class Globals : MonoBehaviour
             
             timescaleAccumulator += localTimescale;
             timescaleAccumulator = Mathf.Round(timescaleAccumulator * 100)/100.0f;
-            if (timescaleAccumulator % 1 == 0f)
+            if (timescaleAccumulator >= accumulatorThreshold)
             {
-                Debug.Log("Setting Is Pop Frame True");
+                accumulatorThreshold += 1;
                 isPopFrame = true;
             } else
             {
@@ -61,7 +62,7 @@ public class Globals : MonoBehaviour
 
     public float rewindInterpolationFactor()
     {
-        if (timescaleAccumulator > 0f && timescaleAccumulator % 1 == 0)
+        if (isPopFrame)
         {
             return 1;
         }
@@ -77,19 +78,6 @@ public class Globals : MonoBehaviour
         rewindingThreshold = (int) Mathf.Round(1 / localTimescale);
     }
 
-    public bool getIsRecordingFrame()
-    {
-        if (rewindingSlowmoFrameCount % rewindingThreshold == 0)
-        {
-            rewindingSlowmoFrameCount = 0;
-            return true;
-        } else
-        {
-            return false;
-        }
-
-    }
-
     public bool getRewinding()
     {
         return rewinding;
@@ -102,8 +90,13 @@ public class Globals : MonoBehaviour
             return;
         } else
         {
-            rewindingSlowmoFrameCount = 0;
-            setTimescale(0.05f);
+            timescaleAccumulator = 0f;
+            accumulatorThreshold = 0f;
+            setTimescale(0.1f);
+            //float timescale = Random.Range(0.01f, 0.7f);
+            //timescale = Mathf.Round(timescale * 100f) / 100.0f;
+            //Debug.Log(timescale);
+            //setTimescale(timescale);
             rewinding = true;
         }
     }
@@ -115,9 +108,10 @@ public class Globals : MonoBehaviour
             return;
         } else
         {
+            timescaleAccumulator = 0f;
+            accumulatorThreshold = 0f;
             rewinding = false;
             setTimescale(1f);
-            rewindingSlowmoFrameCount = 0;
         }
     }
 }
