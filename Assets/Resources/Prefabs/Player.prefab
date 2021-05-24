@@ -196,11 +196,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 729af750e7d3f4003845ba866f28fb88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rigidBody: {fileID: 0}
   globals: {fileID: 0}
-  halfSpeed: 0
   bulletPrefab: {fileID: 0}
   bulletSpawn: {fileID: 0}
+  slowmo: 0
 --- !u!50 &7467297500392119262
 Rigidbody2D:
   serializedVersion: 4
@@ -210,7 +209,7 @@ Rigidbody2D:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7467297500392119235}
   m_BodyType: 0
-  m_Simulated: 1
+  m_Simulated: 0
   m_UseFullKinematicContacts: 1
   m_UseAutoMass: 0
   m_Mass: 1

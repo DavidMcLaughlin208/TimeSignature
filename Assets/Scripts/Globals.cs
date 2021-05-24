@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,6 +21,8 @@ public class Globals : MonoBehaviour
     private float accumulatorThreshold = 1f;
 
     private bool isPopFrame = false;
+
+    public bool paused = false;
 
     void Awake() {
         Application.targetFrameRate = targetFramerate;
@@ -60,6 +63,12 @@ public class Globals : MonoBehaviour
         return isPopFrame;
     }
 
+    internal void togglePause()
+    {
+        setRewindingFalse();
+        paused = !paused;
+    }
+
     public float rewindInterpolationFactor()
     {
         if (isPopFrame)
@@ -90,6 +99,7 @@ public class Globals : MonoBehaviour
             return;
         } else
         {
+            paused = false;
             timescaleAccumulator = 0f;
             accumulatorThreshold = 0f;
             setTimescale(0.1f);
@@ -108,6 +118,7 @@ public class Globals : MonoBehaviour
             return;
         } else
         {
+            paused = true;
             timescaleAccumulator = 0f;
             accumulatorThreshold = 0f;
             rewinding = false;

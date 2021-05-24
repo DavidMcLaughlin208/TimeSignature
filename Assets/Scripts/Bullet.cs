@@ -10,7 +10,7 @@ public class Bullet : MonoBehaviour
     public List<BulletSnapshot> history;
     public static float speed = 50f;
     public bool dead = false;
-    BulletSnapshot currentFrameSnapshot = new BulletSnapshot();
+    public BulletSnapshot currentFrameSnapshot = new BulletSnapshot();
     ContactFilter2D contactFilter = new ContactFilter2D();
 
     public GameObject hitEffect;
@@ -39,16 +39,18 @@ public class Bullet : MonoBehaviour
             }
             BulletSnapshot snapshot = history[0];
             transform.position = getInterpolatedPosition();
-            //Debug.Log(transform.position);
             for (int i = 0; i < snapshot.lambdasToExecute.Count; i++)
             {
                 RewindFunc func = snapshot.lambdasToExecute[i];
                 func(gameObject);
             }
-            if (globals.getIsPopFrame())
+            if (globals.getIsPopFrame() || history.Count == 1)
             {
                 history.RemoveAt(0);
             }
+        } else if (globals.paused)
+        {
+
         }
         else
         {
@@ -92,7 +94,7 @@ public class Bullet : MonoBehaviour
     // }
 
     void LateUpdate() {
-        if (!globals.getRewinding()){
+        if (!globals.getRewinding() && !globals.paused) {
             history.Insert(0, currentFrameSnapshot);
             currentFrameSnapshot = new BulletSnapshot();
             while (history.Count > globals.targetFramerate * globals.secondsOfRewind) {

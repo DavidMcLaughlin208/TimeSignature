@@ -5,11 +5,10 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
 
-    float speed = 6f;
+    float speed = 0.05f;
     Vector2 moveDirection = Vector3.zero;
     Vector2 mousePos = Vector2.zero;
 
-    public Rigidbody2D rb;
     public PlayerSnapshot currentFrameSnapshot = new PlayerSnapshot();
 
     public List<PlayerSnapshot> history;
@@ -20,6 +19,8 @@ public class Player : MonoBehaviour
 
     public bool slowmo = false;
 
+    CircleCollider2D circleCollider;
+
     // public bool halfSpeed = false;
     void Awake() {
         globals = GameObject.Find("Globals").GetComponent<Globals>();
@@ -27,7 +28,7 @@ public class Player : MonoBehaviour
 
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
+        circleCollider = GetComponent<CircleCollider2D>();
         history = new List<PlayerSnapshot>();
         bulletPrefab = globals.prefabManager.bulletPrefab;
         bulletSpawn = transform.Find("BulletSpawn");
@@ -46,6 +47,11 @@ public class Player : MonoBehaviour
             }
         }
 
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            globals.togglePause();
+        }
+
         if (Input.GetKeyDown("r")) {
             globals.setRewindingTrue();
             if (slowmo) {
@@ -57,19 +63,28 @@ public class Player : MonoBehaviour
             globals.setRewindingFalse();
         }
 
-        if (globals.getRewinding()) {
-            if (history.Count == 0) {
+        if (globals.getRewinding())
+        {
+            if (history.Count == 0)
+            {
                 return;
             }
             PlayerSnapshot snapshot = history[0];
             transform.position = getInterpolatedPosition();
-            rb.rotation = getInterpolatedAngle();
+            transform.eulerAngles = new Vector3(0, 0, getInterpolatedAngle());
             if (globals.getIsPopFrame())
             {
                 history.RemoveAt(0);
             }
-        } else {
-            if (Input.GetMouseButtonDown(0)) {
+        }
+        else if (globals.paused)
+        {
+
+        }
+        else
+        {
+            if (Input.GetMouseButtonDown(0))
+            {
                 fireBullet();
             }
 
@@ -78,15 +93,27 @@ public class Player : MonoBehaviour
             moveDirection = moveDirection.normalized;
 
             mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            Vector2 dir = (mousePos - (Vector2) transform.position);
+            Vector2 dir = (mousePos - (Vector2)transform.position);
             float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
-            rb.rotation = angle;
+
+
+            RaycastHit2D hit = Physics2D.CircleCast(transform.position, circleCollider.radius, moveDirection, speed);
+            if (hit.collider != null)
+            {
+
+            }
+            else
+            {
+                Vector2 newPosition = (Vector2)transform.position + (Vector2)moveDirection * speed;
+                transform.position = newPosition;
+                transform.eulerAngles = new Vector3(0, 0, angle);
+            }
 
 
             currentFrameSnapshot.position = transform.position;
             currentFrameSnapshot.angle = angle;
 
-            
+
         }
     }
 
@@ -112,16 +139,15 @@ public class Player : MonoBehaviour
             return history[0].angle;
         } else
         {
-            return Mathf.Lerp(history[1].angle, history[0].angle, Mathf.Min(globals.rewindInterpolationFactor(), 1));
+            float snapshot1Angle = history[0].angle;
+            float snapshot2Angle = history[1].angle;
+            float factor = Mathf.Min(globals.rewindInterpolationFactor(), 1);
+            return Mathf.Lerp(snapshot1Angle, snapshot2Angle, factor);
         }
     }
 
-    void FixedUpdate() {
-        rb.MovePosition(rb.position + moveDirection * speed * Time.fixedDeltaTime);  
-    }
-
     void LateUpdate() {
-        if (!globals.getRewinding()) {
+        if (!globals.getRewinding() && !globals.paused) {
             history.Insert(0, currentFrameSnapshot);
             currentFrameSnapshot = new PlayerSnapshot();
             while (history.Count > globals.targetFramerate * globals.secondsOfRewind) {
@@ -133,14 +159,15 @@ public class Player : MonoBehaviour
     private void fireBullet() {
         GameObject bullet = Object.Instantiate(bulletPrefab, bulletSpawn.position, bulletSpawn.rotation);
 
-        //Bullet bulletScript = bullet.GetComponent<Bullet>();
+        Bullet bulletScript = bullet.GetComponent<Bullet>();
+        bulletScript.currentFrameSnapshot.position = bulletSpawn.position;
 
         //Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
         //rb.velocity = bulletSpawn.up * Bullet.speed;
         // rb.AddForce(bulletSpawn.up * bulletScript.speed, ForceMode2D.Impulse);
 
-        
-        
+
+
     }
 
 }

@@ -129,7 +129,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   globals: {fileID: 0}
-  rigidBody: {fileID: 0}
   capsuleCollider: {fileID: 0}
   spriteRenderer: {fileID: 0}
   dead: 0
