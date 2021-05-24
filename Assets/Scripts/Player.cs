@@ -20,6 +20,7 @@ public class Player : MonoBehaviour
 
     public bool slowmo = false;
 
+    // public bool halfSpeed = false;
     void Awake() {
         globals = GameObject.Find("Globals").GetComponent<Globals>();
     }
@@ -34,7 +35,7 @@ public class Player : MonoBehaviour
 
     void Update() {
         if (Input.GetKeyDown(KeyCode.LeftShift)) {
-            if (!globals.rewinding) {
+            if (!globals.getRewinding()) {
                 if (slowmo) {
                     slowmo = false;
                     Time.timeScale = 1f;
@@ -46,24 +47,27 @@ public class Player : MonoBehaviour
         }
 
         if (Input.GetKeyDown("r")) {
-            globals.rewinding = true;
+            globals.setRewindingTrue();
             if (slowmo) {
                 slowmo = false;
                 Time.timeScale = 1f;
             } 
         }
         if (Input.GetKeyUp("r")) {
-            globals.rewinding = false;
+            globals.setRewindingFalse();
         }
 
-        if (globals.rewinding) {
+        if (globals.getRewinding()) {
             if (history.Count == 0) {
                 return;
             }
             PlayerSnapshot snapshot = history[0];
-            transform.position = snapshot.position;
-            rb.rotation = snapshot.angle;
-            history.RemoveAt(0);
+            transform.position = getInterpolatedPosition();
+            rb.rotation = getInterpolatedAngle();
+            if (globals.getIsPopFrame())
+            {
+                history.RemoveAt(0);
+            }
         } else {
             if (Input.GetMouseButtonDown(0)) {
                 fireBullet();
@@ -86,12 +90,38 @@ public class Player : MonoBehaviour
         }
     }
 
+    private Vector2 getInterpolatedPosition()
+    {
+        if (history.Count < 2)
+        {
+            return history[0].position;
+        }
+        else
+        {
+            Vector2 snapshot1Position = history[0].position;
+            Vector2 snapshot2Position = history[1].position;
+            float factor = globals.rewindInterpolationFactor();
+            return Vector2.Lerp(snapshot1Position, snapshot2Position, Mathf.Min(factor, 1f));
+        }
+    }
+
+    private float getInterpolatedAngle()
+    {
+        if (history.Count < 2)
+        {
+            return history[0].angle;
+        } else
+        {
+            return Mathf.Lerp(history[1].angle, history[0].angle, Mathf.Min(globals.rewindInterpolationFactor(), 1));
+        }
+    }
+
     void FixedUpdate() {
         rb.MovePosition(rb.position + moveDirection * speed * Time.fixedDeltaTime);  
     }
 
     void LateUpdate() {
-        if (!globals.rewinding) {
+        if (!globals.getRewinding()) {
             history.Insert(0, currentFrameSnapshot);
             currentFrameSnapshot = new PlayerSnapshot();
             while (history.Count > globals.targetFramerate * globals.secondsOfRewind) {
@@ -103,10 +133,10 @@ public class Player : MonoBehaviour
     private void fireBullet() {
         GameObject bullet = Object.Instantiate(bulletPrefab, bulletSpawn.position, bulletSpawn.rotation);
 
-        Bullet bulletScript = bullet.GetComponent<Bullet>();
+        //Bullet bulletScript = bullet.GetComponent<Bullet>();
 
-        Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
-        rb.velocity = bulletSpawn.up * Bullet.speed;
+        //Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
+        //rb.velocity = bulletSpawn.up * Bullet.speed;
         // rb.AddForce(bulletSpawn.up * bulletScript.speed, ForceMode2D.Impulse);
 
         

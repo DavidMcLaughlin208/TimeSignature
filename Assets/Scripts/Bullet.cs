@@ -5,13 +5,13 @@ using UnityEngine;
 public class Bullet : MonoBehaviour
 {
     public Globals globals;
-    public Rigidbody2D rigidBody;
     public CapsuleCollider2D capsuleCollider;
     public SpriteRenderer spriteRenderer;
     public List<BulletSnapshot> history;
     public static float speed = 50f;
     public bool dead = false;
     BulletSnapshot currentFrameSnapshot = new BulletSnapshot();
+    ContactFilter2D contactFilter = new ContactFilter2D();
 
     public GameObject hitEffect;
     
@@ -22,37 +22,66 @@ public class Bullet : MonoBehaviour
     void Start()
     {
         history = new List<BulletSnapshot>();
-        rigidBody = GetComponent<Rigidbody2D>();
         capsuleCollider = GetComponent<CapsuleCollider2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
 
 
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (globals.rewinding) {
-            if (history.Count == 0) {
+        if (globals.getRewinding())
+        {
+            if (history.Count == 0)
+            {
                 Destroy(gameObject);
                 return;
             }
             BulletSnapshot snapshot = history[0];
-            transform.position = snapshot.position;
-            rigidBody.velocity = snapshot.velocity;
-            for (int i = 0; i < snapshot.lambdasToExecute.Count; i++) {
+            transform.position = getInterpolatedPosition();
+            //Debug.Log(transform.position);
+            for (int i = 0; i < snapshot.lambdasToExecute.Count; i++)
+            {
                 RewindFunc func = snapshot.lambdasToExecute[i];
                 func(gameObject);
             }
-            history.RemoveAt(0);
-        } else {
-            if (!dead) {
-                rigidBody.simulated = true;
+            if (globals.getIsPopFrame())
+            {
+                history.RemoveAt(0);
+            }
+        }
+        else
+        {
+            if (!dead)
+            {
                 capsuleCollider.enabled = true;
             }
-            currentFrameSnapshot.position = (Vector2) rigidBody.position;
-            currentFrameSnapshot.velocity = (Vector2) rigidBody.velocity;
+            RaycastHit2D[] results = new RaycastHit2D[1];
+            Physics2D.CapsuleCast(transform.position, capsuleCollider.size, CapsuleDirection2D.Vertical, 0f, transform.up, contactFilter.NoFilter(), results, 1f);
+            if (results[0].collider == null)
+            {
+                transform.position = (Vector2)transform.position + (Vector2) transform.up * 1f;
+            } else
+            {
+                transform.position = results[0].point;
+            }
+            currentFrameSnapshot.position = (Vector2) transform.position;
         }
+    }
+
+    private Vector2 getInterpolatedPosition()
+    {
+        if (history.Count < 2)
+        {
+            return history[0].position;
+        } else
+        {
+            Vector2 snapshot1Position = history[0].position;
+            Vector2 snapshot2Position = history[1].position;
+            float factor = globals.rewindInterpolationFactor();
+            return Vector2.Lerp(snapshot1Position, snapshot2Position, Mathf.Min(factor, 1f));
+        }
+
     }
 
     // void FixedUpdate() {
@@ -63,7 +92,7 @@ public class Bullet : MonoBehaviour
     // }
 
     void LateUpdate() {
-        if (!globals.rewinding){
+        if (!globals.getRewinding() && globals.getIsRecordingFrame()){
             history.Insert(0, currentFrameSnapshot);
             currentFrameSnapshot = new BulletSnapshot();
             while (history.Count > globals.targetFramerate * globals.secondsOfRewind) {
@@ -77,7 +106,7 @@ public class Bullet : MonoBehaviour
     }
 
     public void OnTriggerEnter2D(Collider2D other) {
-        GameObject effect = Object.Instantiate(hitEffect, rigidBody.transform.position, Quaternion.identity);
+        GameObject effect = Object.Instantiate(hitEffect, transform.position, Quaternion.identity);
         // effect.GetComponent<Animator>().Play("Tag");
         // Destroy(effect, 10f);
         currentFrameSnapshot.lambdasToExecute.Add(Delegates.bulletUndoDeath);
@@ -85,10 +114,10 @@ public class Bullet : MonoBehaviour
         death();
     }
 
+
+
     private void death() {
         dead = true;
-        rigidBody.velocity = Vector2.zero;
-        rigidBody.simulated = false;
         spriteRenderer.enabled = false;
         capsuleCollider.enabled = false;
     }
