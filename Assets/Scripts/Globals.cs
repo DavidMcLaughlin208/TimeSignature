@@ -2,18 +2,18 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Globals : MonoBehaviour
 {
+
+    public int rewindCount = 0;
  
     private bool rewinding = false;
 
     public int secondsOfRewind = 5;
 
     public int targetFramerate = 60;
-
-    private int rewindingSlowmoFrameCount = 0;
-    private int rewindingThreshold = 1;
 
     public float localTimescale = 1f;
 
@@ -24,9 +24,12 @@ public class Globals : MonoBehaviour
 
     public bool paused = false;
 
+    public Slider rewindSlider;
+
     void Awake() {
         Application.targetFrameRate = targetFramerate;
         prefabManager = GameObject.Find("PrefabManager").GetComponent<PrefabManager>();
+        rewindSlider = GameObject.Find("Canvas/RewindSlider").GetComponent<Slider>();
     }
 
     public PrefabManager prefabManager;
@@ -39,22 +42,40 @@ public class Globals : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        rewindingSlowmoFrameCount++;
+        rewindSlider.value = rewindCount;
+
         if (rewinding)
         {
-            
+
             timescaleAccumulator += localTimescale;
-            timescaleAccumulator = Mathf.Round(timescaleAccumulator * 100)/100.0f;
+            timescaleAccumulator = Mathf.Round(timescaleAccumulator * 100) / 100.0f;
             if (timescaleAccumulator >= accumulatorThreshold)
             {
                 accumulatorThreshold += 1;
+                rewindCount--;
                 isPopFrame = true;
-            } else
+            }
+            else
             {
                 isPopFrame = false;
             }
-                     
-            
+
+
+        }
+        else
+        {
+            if (!paused)
+            {
+                rewindCount++;
+                if (rewindCount <= 0)
+                {
+                    setRewindingFalse();
+                }
+                else if (rewindCount > secondsOfRewind * targetFramerate)
+                {
+                    rewindCount = secondsOfRewind * targetFramerate;
+                }
+            }
         }
     }
 
@@ -83,8 +104,15 @@ public class Globals : MonoBehaviour
 
     public void setTimescale(float scale)
     {
-        localTimescale = scale;
-        rewindingThreshold = (int) Mathf.Round(1 / localTimescale);
+        if (scale > 1f)
+        {
+            localTimescale = 1f;
+        } else if (scale < .1f)
+        {
+            localTimescale = .1f;
+        } else { 
+            localTimescale = scale;
+        }
     }
 
     public bool getRewinding()
@@ -102,7 +130,7 @@ public class Globals : MonoBehaviour
             paused = false;
             timescaleAccumulator = 0f;
             accumulatorThreshold = 0f;
-            setTimescale(0.1f);
+            setTimescale(0.3f);
             //float timescale = Random.Range(0.01f, 0.7f);
             //timescale = Mathf.Round(timescale * 100f) / 100.0f;
             //Debug.Log(timescale);
@@ -118,7 +146,6 @@ public class Globals : MonoBehaviour
             return;
         } else
         {
-            paused = true;
             timescaleAccumulator = 0f;
             accumulatorThreshold = 0f;
             rewinding = false;

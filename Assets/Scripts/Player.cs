@@ -5,7 +5,7 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
 
-    float speed = 0.05f;
+    float speed = 0.15f;
     Vector2 moveDirection = Vector3.zero;
     Vector2 mousePos = Vector2.zero;
 
