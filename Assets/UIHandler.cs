@@ -28,9 +28,9 @@ public class UIHandler : MonoBehaviour
         {
             timescaleText.text = string.Format("{0:N2}x", val);
         });
-        globals.paused.Subscribe(val =>
+        globals.timeState.Subscribe(val =>
         {
-            if (val)
+            if (val == (int) TimeState.PAUSE)
             {
                 timescaleText.text = "0x";
             } else

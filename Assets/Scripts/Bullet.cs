@@ -12,8 +12,10 @@ public class Bullet : MonoBehaviour
     public bool dead = false;
     public BulletSnapshot currentFrameSnapshot = new BulletSnapshot();
     ContactFilter2D contactFilter = new ContactFilter2D();
+    public Vector2 originPoint;
 
     public GameObject hitEffect;
+    public LineRenderer trail;
     
 
     void Awake() {
@@ -24,52 +26,133 @@ public class Bullet : MonoBehaviour
         history = new List<BulletSnapshot>();
         capsuleCollider = GetComponent<CapsuleCollider2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        trail = GetComponent<LineRenderer>();
+        history.Add(currentFrameSnapshot);
 
 
     }
 
     void Update()
     {
-        if (globals.getRewinding())
+        switch (globals.timeState.Value)
         {
-            if (history.Count == 0)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            BulletSnapshot snapshot = history[0];
-            transform.position = getInterpolatedPosition();
-            for (int i = 0; i < snapshot.lambdasToExecute.Count; i++)
-            {
-                RewindFunc func = snapshot.lambdasToExecute[i];
-                func(gameObject);
-            }
-            if (globals.getIsPopFrame() || history.Count == 1)
-            {
-                history.RemoveAt(0);
-            }
-        } else if (globals.paused.Value)
-        {
+            case (int)TimeState.PLAY:
+                if (!dead)
+                {
+                    capsuleCollider.enabled = true;
 
+                    float timescaledSpeed = speed * globals.localTimescale.Value;
+                    RaycastHit2D[] results = new RaycastHit2D[1];
+                    Physics2D.CapsuleCast(transform.position, capsuleCollider.size, CapsuleDirection2D.Vertical, 0f, transform.up, contactFilter.NoFilter(), results, timescaledSpeed);
+                    if (results[0].collider == null)
+                    {
+                        transform.position = (Vector2)transform.position + (Vector2)transform.up * timescaledSpeed;
+                    }
+                    else
+                    {
+                        //Vector2 normal = results[0].normal;
+                        //float angle = Mathf.Atan2(normal.y, normal.x) * Mathf.Rad2Deg - 90f;
+                        //GameObject effect = Object.Instantiate(hitEffect, results[0].point, Quaternion.FromToRotation(Vector2.right, normal));
+                        transform.position = results[0].point;
+                        setTrailPoints();
+                        death();
+                    }
+                    setTrailPoints();
+                }
+                currentFrameSnapshot.position = (Vector2)transform.position;
+                break;
+            case (int)TimeState.PAUSE:
+                break;
+            case (int)TimeState.REWIND:
+                if (history.Count == 0)
+                {
+                    Destroy(gameObject);
+                    return;
+                }
+                BulletSnapshot snapshot = history[0];
+                transform.position = getInterpolatedPosition();
+                if (globals.getIsPopFrame())
+                {
+                    for (int i = 0; i < snapshot.lambdasToExecute.Count; i++)
+                    {
+                        RewindFunc func = snapshot.lambdasToExecute[i];
+                        func(gameObject);
+                    }
+                }
+                setTrailPoints();
+                if (globals.getIsPopFrame() || history.Count == 1)
+                {
+                    history.RemoveAt(0);
+                }
+                break;
         }
-        else
+
+
+        //if (globals.isRewinding())
+        //{
+        //    if (history.Count == 0)
+        //    {
+        //        Destroy(gameObject);
+        //        return;
+        //    }
+        //    BulletSnapshot snapshot = history[0];
+        //    transform.position = getInterpolatedPosition();
+        //    if (globals.getIsPopFrame())
+        //    {
+        //        for (int i = 0; i < snapshot.lambdasToExecute.Count; i++)
+        //        {
+        //            RewindFunc func = snapshot.lambdasToExecute[i];
+        //            func(gameObject);
+        //        }
+        //    }
+        //    setTrailPoints();
+        //    if (globals.getIsPopFrame() || history.Count == 1)
+        //    {
+        //        history.RemoveAt(0);
+        //    }
+        //} else if (globals.paused.Value)
+        //{
+
+        //}
+        //else
+        //{
+        //    if (!dead)
+        //    {
+        //        capsuleCollider.enabled = true;
+
+        //        float timescaledSpeed = speed * globals.localTimescale.Value;
+        //        RaycastHit2D[] results = new RaycastHit2D[1];
+        //        Physics2D.CapsuleCast(transform.position, capsuleCollider.size, CapsuleDirection2D.Vertical, 0f, transform.up, contactFilter.NoFilter(), results, timescaledSpeed);
+        //        if (results[0].collider == null)
+        //        {
+        //            transform.position = (Vector2)transform.position + (Vector2)transform.up * timescaledSpeed;
+        //        }
+        //        else
+        //        {
+        //            //Vector2 normal = results[0].normal;
+        //            //float angle = Mathf.Atan2(normal.y, normal.x) * Mathf.Rad2Deg - 90f;
+        //            //GameObject effect = Object.Instantiate(hitEffect, results[0].point, Quaternion.FromToRotation(Vector2.right, normal));
+        //            transform.position = results[0].point;
+        //            setTrailPoints();
+        //            death();
+        //        }
+        //        setTrailPoints();
+        //    }
+        //    currentFrameSnapshot.position = (Vector2) transform.position;
+        //}
+    }
+
+    private void setTrailPoints()
+    {
+        trail.SetPosition(0, transform.position);
+        Vector2 secondPosition;
+        if (Vector2.Distance(transform.position, transform.position + transform.up * -2) < Vector2.Distance(transform.position, originPoint)) {
+            secondPosition = transform.position + transform.up * -2;
+        } else
         {
-            if (!dead)
-            {
-                capsuleCollider.enabled = true;
-            }
-            float timescaledSpeed = speed * globals.localTimescale.Value;
-            RaycastHit2D[] results = new RaycastHit2D[1];
-            Physics2D.CapsuleCast(transform.position, capsuleCollider.size, CapsuleDirection2D.Vertical, 0f, transform.up, contactFilter.NoFilter(), results, timescaledSpeed);
-            if (results[0].collider == null)
-            {
-                transform.position = (Vector2)transform.position + (Vector2) transform.up * timescaledSpeed;
-            } else
-            {
-                transform.position = results[0].point;
-            }
-            currentFrameSnapshot.position = (Vector2) transform.position;
+            secondPosition = originPoint;
         }
+        trail.SetPosition(1, secondPosition);
     }
 
     private Vector2 getInterpolatedPosition()
@@ -95,15 +178,24 @@ public class Bullet : MonoBehaviour
     // }
 
     void LateUpdate() {
-        if (!globals.getRewinding() && globals.getIsPopFrame() && !globals.paused.Value) {
-            history.Insert(0, currentFrameSnapshot);
-            currentFrameSnapshot = new BulletSnapshot();
-            while (history.Count > globals.targetFramerate * globals.secondsOfRewind) {
-                if (history[history.Count - 1].expiry) {
-                    Destroy(gameObject);
-                    return;
+        if (globals.timeState.Value == (int) TimeState.PLAY) {
+            if (globals.getIsPopFrame())
+            {
+                currentFrameSnapshot = new BulletSnapshot();
+                currentFrameSnapshot.position = transform.position;
+                history.Insert(0, currentFrameSnapshot);
+                while (history.Count > globals.targetFramerate * globals.secondsOfRewind)
+                {
+                    if (history[history.Count - 1].expiry)
+                    {
+                        Destroy(gameObject);
+                        return;
+                    }
+                    history.RemoveAt(history.Count - 1);
                 }
-                history.RemoveAt(history.Count - 1);
+            } else
+            {
+                history[0] = currentFrameSnapshot;
             }
         }
     }
@@ -123,5 +215,8 @@ public class Bullet : MonoBehaviour
         dead = true;
         spriteRenderer.enabled = false;
         capsuleCollider.enabled = false;
+        currentFrameSnapshot.expiry = true;
+        trail.enabled = false;
+        currentFrameSnapshot.lambdasToExecute.Add(Delegates.bulletUndoDeath);
     }
 }

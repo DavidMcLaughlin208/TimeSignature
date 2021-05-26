@@ -30,17 +30,18 @@ public class Player : MonoBehaviour
         history = new List<PlayerSnapshot>();
         bulletPrefab = globals.prefabManager.bulletPrefab;
         bulletSpawn = transform.Find("BulletSpawn");
+        history.Add(currentFrameSnapshot);
     }
 
     void Update() {
         if (Input.GetKeyDown(KeyCode.LeftShift)) {
-            if (!globals.getRewinding()) {
-                if (globals.localTimescale.Value == 0.3f)
+            if (!globals.isRewinding()) {
+                if (globals.localTimescale.Value == 0.05f)
                 {
                     globals.setTimescale(1f);
                 } else
                 {
-                    globals.setTimescale(0.3f);
+                    globals.setTimescale(0.05f);
                 }
             }
         }
@@ -57,59 +58,56 @@ public class Player : MonoBehaviour
             globals.setRewindingFalse();
         }
 
-        if (globals.getRewinding())
-        {
-            if (history.Count == 0)
-            {
-                return;
-            }
-            PlayerSnapshot snapshot = history[0];
-            transform.position = getInterpolatedPosition();
-            transform.eulerAngles = new Vector3(0, 0, getInterpolatedAngle());
-            if (globals.getIsPopFrame())
-            {
-                history.RemoveAt(0);
-            }
+        switch (globals.timeState.Value) {
+            case (int)TimeState.PLAY:
+                if (Input.GetMouseButtonDown(0))
+                {
+                    fireBullet();
+                }
+
+                moveDirection.x = Input.GetAxis("Horizontal");
+                moveDirection.y = Input.GetAxis("Vertical");
+                moveDirection = moveDirection.normalized;
+
+                mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                Vector2 dir = (mousePos - (Vector2)transform.position);
+                float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
+
+                float timescaledSpeed = speed * globals.localTimescale.Value;
+
+                RaycastHit2D hit = Physics2D.CircleCast(transform.position, circleCollider.radius, moveDirection, timescaledSpeed);
+                if (hit.collider != null)
+                {
+
+                }
+                else
+                {
+                    Vector2 newPosition = (Vector2)transform.position + (Vector2)moveDirection * timescaledSpeed;
+                    transform.position = newPosition;
+                    transform.eulerAngles = new Vector3(0, 0, angle);
+                }
+
+
+                currentFrameSnapshot.position = transform.position;
+                currentFrameSnapshot.angle = angle;
+                break;
+            case (int)TimeState.PAUSE:
+                break;
+            case (int)TimeState.REWIND:
+                if (history.Count == 0)
+                {
+                    return;
+                }
+                PlayerSnapshot snapshot = history[0];
+                transform.position = getInterpolatedPosition();
+                transform.eulerAngles = new Vector3(0, 0, getInterpolatedAngle());
+                if (globals.getIsPopFrame())
+                {
+                    history.RemoveAt(0);
+                }
+                break;
         }
-        else if (globals.paused.Value)
-        {
 
-        }
-        else
-        {
-            if (Input.GetMouseButtonDown(0))
-            {
-                fireBullet();
-            }
-
-            moveDirection.x = Input.GetAxis("Horizontal");
-            moveDirection.y = Input.GetAxis("Vertical");
-            moveDirection = moveDirection.normalized;
-
-            mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            Vector2 dir = (mousePos - (Vector2)transform.position);
-            float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
-
-            float timescaledSpeed = speed * globals.localTimescale.Value;
-
-            RaycastHit2D hit = Physics2D.CircleCast(transform.position, circleCollider.radius, moveDirection, timescaledSpeed);
-            if (hit.collider != null)
-            {
-
-            }
-            else
-            {
-                Vector2 newPosition = (Vector2)transform.position + (Vector2)moveDirection * timescaledSpeed;
-                transform.position = newPosition;
-                transform.eulerAngles = new Vector3(0, 0, angle);
-            }
-
-
-            currentFrameSnapshot.position = transform.position;
-            currentFrameSnapshot.angle = angle;
-
-
-        }
     }
 
     private Vector2 getInterpolatedPosition()
@@ -142,11 +140,22 @@ public class Player : MonoBehaviour
     }
 
     void LateUpdate() {
-        if (!globals.getRewinding() && globals.getIsPopFrame() && !globals.paused.Value) {
-            history.Insert(0, currentFrameSnapshot);
-            currentFrameSnapshot = new PlayerSnapshot();
-            while (history.Count > globals.targetFramerate * globals.secondsOfRewind) {
-                history.RemoveAt(history.Count - 1);
+        if (globals.timeState.Value == (int)TimeState.PLAY) {
+            if (globals.getIsPopFrame())
+            {
+                float angle = currentFrameSnapshot.angle;
+                currentFrameSnapshot = new PlayerSnapshot();
+                currentFrameSnapshot.position = transform.position;
+                currentFrameSnapshot.angle = angle;
+                history.Insert(0, currentFrameSnapshot);
+                
+                while (history.Count > globals.targetFramerate * globals.secondsOfRewind)
+                {
+                    history.RemoveAt(history.Count - 1);
+                }
+            } else
+            {
+                history[0] = currentFrameSnapshot;
             }
         }
     }
@@ -156,6 +165,7 @@ public class Player : MonoBehaviour
 
         Bullet bulletScript = bullet.GetComponent<Bullet>();
         bulletScript.currentFrameSnapshot.position = bulletSpawn.position;
+        bulletScript.originPoint = bulletSpawn.position;
 
         //Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
         //rb.velocity = bulletSpawn.up * Bullet.speed;

@@ -8,8 +8,6 @@ public class Globals : MonoBehaviour
 {
 
     public IntReactiveProperty rewindCount = new IntReactiveProperty(0);
- 
-    private bool rewinding = false;
 
     public int secondsOfRewind = 5;
 
@@ -22,7 +20,7 @@ public class Globals : MonoBehaviour
 
     private bool isPopFrame = false;
 
-    public BoolReactiveProperty paused = new BoolReactiveProperty(false);
+    public IntReactiveProperty timeState = new IntReactiveProperty((int) TimeState.PLAY);
 
     
 
@@ -42,29 +40,48 @@ public class Globals : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!paused.Value)
+        switch (timeState.Value)
         {
-            rewindCount.Value++;
-            if (rewindCount.Value <= 0)
+            case (int) TimeState.PLAY:
+                rewindCount.Value++;
+                if (rewindCount.Value > secondsOfRewind * targetFramerate)
+                {
+                    rewindCount.Value = secondsOfRewind * targetFramerate;
+                }
+                runTimescaleAccumulation();
+                break;
+            case (int) TimeState.PAUSE:
+                break;
+            case (int) TimeState.REWIND:
+                runTimescaleAccumulation();
+                if (rewindCount.Value <= 0)
+                {
+                    rewindCount.Value = 0;
+                    setRewindingFalse();
+                }
+                break;
+        }
+    }
+
+    private void runTimescaleAccumulation()
+    {
+        timescaleAccumulator += localTimescale.Value;
+        timescaleAccumulator = Mathf.Round(timescaleAccumulator * 100) / 100.0f;
+        if (timescaleAccumulator >= accumulatorThreshold)
+        {
+            if (timeState.Value == (int)TimeState.PLAY)
             {
-                setRewindingFalse();
-            }
-            else if (rewindCount.Value > secondsOfRewind * targetFramerate)
+                rewindCount.Value++;
+            } else if (timeState.Value == (int) TimeState.REWIND)
             {
-                rewindCount.Value = secondsOfRewind * targetFramerate;
-            }
-            timescaleAccumulator += localTimescale.Value;
-            timescaleAccumulator = Mathf.Round(timescaleAccumulator * 100) / 100.0f;
-            if (timescaleAccumulator >= accumulatorThreshold)
-            {
-                accumulatorThreshold += 1;
                 rewindCount.Value--;
-                isPopFrame = true;
             }
-            else
-            {
-                isPopFrame = false;
-            }
+            accumulatorThreshold += 1;
+            isPopFrame = true;
+        }
+        else
+        {
+            isPopFrame = false;
         }
     }
 
@@ -76,7 +93,13 @@ public class Globals : MonoBehaviour
     internal void togglePause()
     {
         setRewindingFalse();
-        paused.Value = !paused.Value;
+        if (timeState.Value != (int) TimeState.PAUSE)
+        {
+            timeState.Value = (int)TimeState.PAUSE;
+        } else
+        {
+            timeState.Value = (int)TimeState.PLAY;
+        }
     }
 
     public float rewindInterpolationFactor()
@@ -98,7 +121,7 @@ public class Globals : MonoBehaviour
         if (scale > 1f)
         {
             localTimescale.Value = 1f;
-        } else if (scale < .1f)
+        } else if (scale < .05f)
         {
             localTimescale.Value = .1f;
         } else { 
@@ -106,41 +129,40 @@ public class Globals : MonoBehaviour
         }
     }
 
-    public bool getRewinding()
+    public bool isRewinding()
     {
-        return rewinding;
+        return timeState.Value == (int) TimeState.REWIND;
     }
 
     public void setRewindingTrue()
     {
-        if (rewinding)
+        if (timeState.Value == (int) TimeState.REWIND)
         {
             return;
         } else
         {
-            paused.Value = false;
             timescaleAccumulator = 0f;
             accumulatorThreshold = 0f;
-            setTimescale(0.3f);
+            setTimescale(0.05f);
             //float timescale = Random.Range(0.01f, 0.7f);
             //timescale = Mathf.Round(timescale * 100f) / 100.0f;
             //Debug.Log(timescale);
             //setTimescale(timescale);
-            rewinding = true;
+            timeState.Value = (int) TimeState.REWIND;
         }
     }
 
     public void setRewindingFalse()
     {
-        if (!rewinding)
+        if (timeState.Value != (int) TimeState.REWIND)
         {
             return;
         } else
         {
             timescaleAccumulator = 0f;
             accumulatorThreshold = 0f;
-            rewinding = false;
             setTimescale(1f);
+            timeState.Value = (int) TimeState.PLAY;
         }
     }
 }

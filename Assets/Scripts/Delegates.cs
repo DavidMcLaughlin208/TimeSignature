@@ -6,5 +6,6 @@ public static class Delegates {
             Bullet bulletInstanceScript = bulletInstance.GetComponent<Bullet>();
             bulletInstanceScript.dead = false;
             bulletInstanceScript.spriteRenderer.enabled = true;
-        };
+            bulletInstanceScript.trail.enabled = true;
+    };
 }
