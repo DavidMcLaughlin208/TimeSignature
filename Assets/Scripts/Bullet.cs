@@ -48,7 +48,7 @@ public class Bullet : MonoBehaviour
             {
                 history.RemoveAt(0);
             }
-        } else if (globals.paused)
+        } else if (globals.paused.Value)
         {
 
         }
@@ -94,7 +94,7 @@ public class Bullet : MonoBehaviour
     // }
 
     void LateUpdate() {
-        if (!globals.getRewinding() && !globals.paused) {
+        if (!globals.getRewinding() && !globals.paused.Value) {
             history.Insert(0, currentFrameSnapshot);
             currentFrameSnapshot = new BulletSnapshot();
             while (history.Count > globals.targetFramerate * globals.secondsOfRewind) {

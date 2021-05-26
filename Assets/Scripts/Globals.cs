@@ -2,12 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using UniRx;
 
 public class Globals : MonoBehaviour
 {
 
-    public int rewindCount = 0;
+    public IntReactiveProperty rewindCount = new IntReactiveProperty(0);
  
     private bool rewinding = false;
 
@@ -15,21 +15,21 @@ public class Globals : MonoBehaviour
 
     public int targetFramerate = 60;
 
-    public float localTimescale = 1f;
+    public FloatReactiveProperty localTimescale = new FloatReactiveProperty(1f);
 
     private float timescaleAccumulator = 0f;
     private float accumulatorThreshold = 1f;
 
     private bool isPopFrame = false;
 
-    public bool paused = false;
+    public BoolReactiveProperty paused = new BoolReactiveProperty(false);
 
-    public Slider rewindSlider;
+    
 
     void Awake() {
         Application.targetFrameRate = targetFramerate;
         prefabManager = GameObject.Find("PrefabManager").GetComponent<PrefabManager>();
-        rewindSlider = GameObject.Find("Canvas/RewindSlider").GetComponent<Slider>();
+        
     }
 
     public PrefabManager prefabManager;
@@ -42,17 +42,16 @@ public class Globals : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        rewindSlider.value = rewindCount;
 
         if (rewinding)
         {
 
-            timescaleAccumulator += localTimescale;
+            timescaleAccumulator += localTimescale.Value;
             timescaleAccumulator = Mathf.Round(timescaleAccumulator * 100) / 100.0f;
             if (timescaleAccumulator >= accumulatorThreshold)
             {
                 accumulatorThreshold += 1;
-                rewindCount--;
+                rewindCount.Value--;
                 isPopFrame = true;
             }
             else
@@ -64,16 +63,16 @@ public class Globals : MonoBehaviour
         }
         else
         {
-            if (!paused)
+            if (!paused.Value)
             {
-                rewindCount++;
-                if (rewindCount <= 0)
+                rewindCount.Value++;
+                if (rewindCount.Value <= 0)
                 {
                     setRewindingFalse();
                 }
-                else if (rewindCount > secondsOfRewind * targetFramerate)
+                else if (rewindCount.Value > secondsOfRewind * targetFramerate)
                 {
-                    rewindCount = secondsOfRewind * targetFramerate;
+                    rewindCount.Value = secondsOfRewind * targetFramerate;
                 }
             }
         }
@@ -87,7 +86,7 @@ public class Globals : MonoBehaviour
     internal void togglePause()
     {
         setRewindingFalse();
-        paused = !paused;
+        paused.Value = !paused.Value;
     }
 
     public float rewindInterpolationFactor()
@@ -106,12 +105,12 @@ public class Globals : MonoBehaviour
     {
         if (scale > 1f)
         {
-            localTimescale = 1f;
+            localTimescale.Value = 1f;
         } else if (scale < .1f)
         {
-            localTimescale = .1f;
+            localTimescale.Value = .1f;
         } else { 
-            localTimescale = scale;
+            localTimescale.Value = scale;
         }
     }
 
@@ -127,7 +126,7 @@ public class Globals : MonoBehaviour
             return;
         } else
         {
-            paused = false;
+            paused.Value = false;
             timescaleAccumulator = 0f;
             accumulatorThreshold = 0f;
             setTimescale(0.3f);

@@ -77,7 +77,7 @@ public class Player : MonoBehaviour
                 history.RemoveAt(0);
             }
         }
-        else if (globals.paused)
+        else if (globals.paused.Value)
         {
 
         }
@@ -147,7 +147,7 @@ public class Player : MonoBehaviour
     }
 
     void LateUpdate() {
-        if (!globals.getRewinding() && !globals.paused) {
+        if (!globals.getRewinding() && !globals.paused.Value) {
             history.Insert(0, currentFrameSnapshot);
             currentFrameSnapshot = new PlayerSnapshot();
             while (history.Count > globals.targetFramerate * globals.secondsOfRewind) {
