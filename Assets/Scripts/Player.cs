@@ -5,7 +5,7 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
 
-    float speed = 0.15f;
+    float speed = 0.1f;
     Vector2 moveDirection = Vector3.zero;
     Vector2 mousePos = Vector2.zero;
 
@@ -16,8 +16,6 @@ public class Player : MonoBehaviour
     public GameObject bulletPrefab;
 
     public Transform bulletSpawn;
-
-    public bool slowmo = false;
 
     CircleCollider2D circleCollider;
 
@@ -37,12 +35,12 @@ public class Player : MonoBehaviour
     void Update() {
         if (Input.GetKeyDown(KeyCode.LeftShift)) {
             if (!globals.getRewinding()) {
-                if (slowmo) {
-                    slowmo = false;
-                    Time.timeScale = 1f;
-                } else {
-                    slowmo = true;
-                    Time.timeScale = 0.5f;
+                if (globals.localTimescale.Value == 0.3f)
+                {
+                    globals.setTimescale(1f);
+                } else
+                {
+                    globals.setTimescale(0.3f);
                 }
             }
         }
@@ -54,10 +52,6 @@ public class Player : MonoBehaviour
 
         if (Input.GetKeyDown("r")) {
             globals.setRewindingTrue();
-            if (slowmo) {
-                slowmo = false;
-                Time.timeScale = 1f;
-            } 
         }
         if (Input.GetKeyUp("r")) {
             globals.setRewindingFalse();
@@ -88,23 +82,24 @@ public class Player : MonoBehaviour
                 fireBullet();
             }
 
-            moveDirection.x = Input.GetAxisRaw("Horizontal");
-            moveDirection.y = Input.GetAxisRaw("Vertical");
+            moveDirection.x = Input.GetAxis("Horizontal");
+            moveDirection.y = Input.GetAxis("Vertical");
             moveDirection = moveDirection.normalized;
 
             mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             Vector2 dir = (mousePos - (Vector2)transform.position);
             float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f;
 
+            float timescaledSpeed = speed * globals.localTimescale.Value;
 
-            RaycastHit2D hit = Physics2D.CircleCast(transform.position, circleCollider.radius, moveDirection, speed);
+            RaycastHit2D hit = Physics2D.CircleCast(transform.position, circleCollider.radius, moveDirection, timescaledSpeed);
             if (hit.collider != null)
             {
 
             }
             else
             {
-                Vector2 newPosition = (Vector2)transform.position + (Vector2)moveDirection * speed;
+                Vector2 newPosition = (Vector2)transform.position + (Vector2)moveDirection * timescaledSpeed;
                 transform.position = newPosition;
                 transform.eulerAngles = new Vector3(0, 0, angle);
             }
@@ -147,7 +142,7 @@ public class Player : MonoBehaviour
     }
 
     void LateUpdate() {
-        if (!globals.getRewinding() && !globals.paused.Value) {
+        if (!globals.getRewinding() && globals.getIsPopFrame() && !globals.paused.Value) {
             history.Insert(0, currentFrameSnapshot);
             currentFrameSnapshot = new PlayerSnapshot();
             while (history.Count > globals.targetFramerate * globals.secondsOfRewind) {

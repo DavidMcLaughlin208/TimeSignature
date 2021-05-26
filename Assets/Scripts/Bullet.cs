@@ -8,7 +8,7 @@ public class Bullet : MonoBehaviour
     public CapsuleCollider2D capsuleCollider;
     public SpriteRenderer spriteRenderer;
     public List<BulletSnapshot> history;
-    public static float speed = 50f;
+    public static float speed = 1f;
     public bool dead = false;
     public BulletSnapshot currentFrameSnapshot = new BulletSnapshot();
     ContactFilter2D contactFilter = new ContactFilter2D();
@@ -58,11 +58,12 @@ public class Bullet : MonoBehaviour
             {
                 capsuleCollider.enabled = true;
             }
+            float timescaledSpeed = speed * globals.localTimescale.Value;
             RaycastHit2D[] results = new RaycastHit2D[1];
-            Physics2D.CapsuleCast(transform.position, capsuleCollider.size, CapsuleDirection2D.Vertical, 0f, transform.up, contactFilter.NoFilter(), results, 1f);
+            Physics2D.CapsuleCast(transform.position, capsuleCollider.size, CapsuleDirection2D.Vertical, 0f, transform.up, contactFilter.NoFilter(), results, timescaledSpeed);
             if (results[0].collider == null)
             {
-                transform.position = (Vector2)transform.position + (Vector2) transform.up * 1f;
+                transform.position = (Vector2)transform.position + (Vector2) transform.up * timescaledSpeed;
             } else
             {
                 transform.position = results[0].point;
@@ -94,7 +95,7 @@ public class Bullet : MonoBehaviour
     // }
 
     void LateUpdate() {
-        if (!globals.getRewinding() && !globals.paused.Value) {
+        if (!globals.getRewinding() && globals.getIsPopFrame() && !globals.paused.Value) {
             history.Insert(0, currentFrameSnapshot);
             currentFrameSnapshot = new BulletSnapshot();
             while (history.Count > globals.targetFramerate * globals.secondsOfRewind) {

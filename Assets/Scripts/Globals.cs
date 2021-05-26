@@ -42,10 +42,17 @@ public class Globals : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
-        if (rewinding)
+        if (!paused.Value)
         {
-
+            rewindCount.Value++;
+            if (rewindCount.Value <= 0)
+            {
+                setRewindingFalse();
+            }
+            else if (rewindCount.Value > secondsOfRewind * targetFramerate)
+            {
+                rewindCount.Value = secondsOfRewind * targetFramerate;
+            }
             timescaleAccumulator += localTimescale.Value;
             timescaleAccumulator = Mathf.Round(timescaleAccumulator * 100) / 100.0f;
             if (timescaleAccumulator >= accumulatorThreshold)
@@ -57,23 +64,6 @@ public class Globals : MonoBehaviour
             else
             {
                 isPopFrame = false;
-            }
-
-
-        }
-        else
-        {
-            if (!paused.Value)
-            {
-                rewindCount.Value++;
-                if (rewindCount.Value <= 0)
-                {
-                    setRewindingFalse();
-                }
-                else if (rewindCount.Value > secondsOfRewind * targetFramerate)
-                {
-                    rewindCount.Value = secondsOfRewind * targetFramerate;
-                }
             }
         }
     }
@@ -103,6 +93,8 @@ public class Globals : MonoBehaviour
 
     public void setTimescale(float scale)
     {
+        timescaleAccumulator = 0f;
+        accumulatorThreshold = 1f;
         if (scale > 1f)
         {
             localTimescale.Value = 1f;
