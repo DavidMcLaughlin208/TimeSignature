@@ -50,16 +50,17 @@ public class Bullet : MonoBehaviour
                     }
                     else
                     {
-                        //Vector2 normal = results[0].normal;
-                        //float angle = Mathf.Atan2(normal.y, normal.x) * Mathf.Rad2Deg - 90f;
-                        //GameObject effect = Object.Instantiate(hitEffect, results[0].point, Quaternion.FromToRotation(Vector2.right, normal));
+                        Vector2 normal = results[0].normal;
+                        float angle = Mathf.Atan2(normal.y, normal.x) * Mathf.Rad2Deg + 90;
+                        GameObject effect = Instantiate(hitEffect, results[0].point, new Quaternion(0,0,angle,0));
+                        Destroy(effect, 1);
                         transform.position = results[0].point;
                         setTrailPoints();
                         death();
                     }
                     setTrailPoints();
                 }
-                currentFrameSnapshot.position = (Vector2)transform.position;
+                currentFrameSnapshot.position = transform.position;
                 break;
             case (int)TimeState.PAUSE:
                 break;
@@ -71,14 +72,14 @@ public class Bullet : MonoBehaviour
                 }
                 BulletSnapshot snapshot = history[0];
                 transform.position = getInterpolatedPosition();
-                if (globals.getIsPopFrame())
+                
+                for (int i = 0; i < snapshot.lambdasToExecute.Count; i++)
                 {
-                    for (int i = 0; i < snapshot.lambdasToExecute.Count; i++)
-                    {
-                        RewindFunc func = snapshot.lambdasToExecute[i];
-                        func(gameObject);
-                    }
+                    RewindFunc func = snapshot.lambdasToExecute[i];
+                    func(gameObject);
                 }
+                snapshot.lambdasToExecute.Clear();
+                
                 setTrailPoints();
                 if (globals.getIsPopFrame() || history.Count == 1)
                 {
@@ -87,59 +88,6 @@ public class Bullet : MonoBehaviour
                 break;
         }
 
-
-        //if (globals.isRewinding())
-        //{
-        //    if (history.Count == 0)
-        //    {
-        //        Destroy(gameObject);
-        //        return;
-        //    }
-        //    BulletSnapshot snapshot = history[0];
-        //    transform.position = getInterpolatedPosition();
-        //    if (globals.getIsPopFrame())
-        //    {
-        //        for (int i = 0; i < snapshot.lambdasToExecute.Count; i++)
-        //        {
-        //            RewindFunc func = snapshot.lambdasToExecute[i];
-        //            func(gameObject);
-        //        }
-        //    }
-        //    setTrailPoints();
-        //    if (globals.getIsPopFrame() || history.Count == 1)
-        //    {
-        //        history.RemoveAt(0);
-        //    }
-        //} else if (globals.paused.Value)
-        //{
-
-        //}
-        //else
-        //{
-        //    if (!dead)
-        //    {
-        //        capsuleCollider.enabled = true;
-
-        //        float timescaledSpeed = speed * globals.localTimescale.Value;
-        //        RaycastHit2D[] results = new RaycastHit2D[1];
-        //        Physics2D.CapsuleCast(transform.position, capsuleCollider.size, CapsuleDirection2D.Vertical, 0f, transform.up, contactFilter.NoFilter(), results, timescaledSpeed);
-        //        if (results[0].collider == null)
-        //        {
-        //            transform.position = (Vector2)transform.position + (Vector2)transform.up * timescaledSpeed;
-        //        }
-        //        else
-        //        {
-        //            //Vector2 normal = results[0].normal;
-        //            //float angle = Mathf.Atan2(normal.y, normal.x) * Mathf.Rad2Deg - 90f;
-        //            //GameObject effect = Object.Instantiate(hitEffect, results[0].point, Quaternion.FromToRotation(Vector2.right, normal));
-        //            transform.position = results[0].point;
-        //            setTrailPoints();
-        //            death();
-        //        }
-        //        setTrailPoints();
-        //    }
-        //    currentFrameSnapshot.position = (Vector2) transform.position;
-        //}
     }
 
     private void setTrailPoints()

@@ -65,8 +65,8 @@ public class Player : MonoBehaviour
                     fireBullet();
                 }
 
-                moveDirection.x = Input.GetAxis("Horizontal");
-                moveDirection.y = Input.GetAxis("Vertical");
+                moveDirection.x = Input.GetAxisRaw("Horizontal");
+                moveDirection.y = Input.GetAxisRaw("Vertical");
                 moveDirection = moveDirection.normalized;
 
                 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -75,14 +75,14 @@ public class Player : MonoBehaviour
 
                 float timescaledSpeed = speed * globals.localTimescale.Value;
 
-                RaycastHit2D hit = Physics2D.CircleCast(transform.position, circleCollider.radius, moveDirection, timescaledSpeed);
+                RaycastHit2D hit = Physics2D.CircleCast(transform.position, circleCollider.radius * 4, moveDirection, timescaledSpeed);
                 if (hit.collider != null)
                 {
 
                 }
                 else
                 {
-                    Vector2 newPosition = (Vector2)transform.position + (Vector2)moveDirection * timescaledSpeed;
+                    Vector2 newPosition = (Vector2)transform.position + moveDirection * timescaledSpeed;
                     transform.position = newPosition;
                     transform.eulerAngles = new Vector3(0, 0, angle);
                 }
@@ -101,6 +101,13 @@ public class Player : MonoBehaviour
                 PlayerSnapshot snapshot = history[0];
                 transform.position = getInterpolatedPosition();
                 transform.eulerAngles = new Vector3(0, 0, getInterpolatedAngle());
+
+                for (int i = 0; i < snapshot.lambdasToExecute.Count; i++)
+                {
+                    RewindFunc func = snapshot.lambdasToExecute[i];
+                    func(gameObject);
+                }
+                snapshot.lambdasToExecute.Clear();
                 if (globals.getIsPopFrame())
                 {
                     history.RemoveAt(0);

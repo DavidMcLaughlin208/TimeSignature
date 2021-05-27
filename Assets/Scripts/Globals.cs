@@ -143,7 +143,7 @@ public class Globals : MonoBehaviour
         {
             timescaleAccumulator = 0f;
             accumulatorThreshold = 0f;
-            setTimescale(0.05f);
+            setTimescale(0.25f);
             //float timescale = Random.Range(0.01f, 0.7f);
             //timescale = Mathf.Round(timescale * 100f) / 100.0f;
             //Debug.Log(timescale);
